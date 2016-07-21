@@ -253,30 +253,6 @@ std::string const arrayProxyHeader = (
   "      , m_ptr(ptr)\n"
   "    {}\n"
   "\n"
-  "    template <size_t N>\n"
-  "    ArrayProxy(std::array<typename std::remove_const<T>::type, N> & data)\n"
-  "      : m_count(N)\n"
-  "      , m_ptr(data.data())\n"
-  "    {}\n"
-  "\n"
-  "    template <size_t N>\n"
-  "    ArrayProxy(std::array<typename std::remove_const<T>::type, N> const& data)\n"
-  "      : m_count(N)\n"
-  "      , m_ptr(data.data())\n"
-  "    {}\n"
-  "\n"
-  "    template <class Allocator = std::allocator<typename std::remove_const<T>::type>>\n"
-  "    ArrayProxy(std::vector<typename std::remove_const<T>::type, Allocator> & data)\n"
-  "      : m_count(static_cast<uint32_t>(data.size()))\n"
-  "      , m_ptr(data.data())\n"
-  "    {}\n"
-  "\n"
-  "    template <class Allocator = std::allocator<typename std::remove_const<T>::type>>\n"
-  "    ArrayProxy(std::vector<typename std::remove_const<T>::type, Allocator> const& data)\n"
-  "      : m_count(static_cast<uint32_t>(data.size()))\n"
-  "      , m_ptr(data.data())\n"
-  "    {}\n"
-  "\n"
   "    ArrayProxy(std::initializer_list<T> const& data)\n"
   "      : m_count(static_cast<uint32_t>(data.end() - data.begin()))\n"
   "      , m_ptr(data.begin())\n"
@@ -335,21 +311,13 @@ std::string const resultValueHeader = (
   "  template <typename T>\n"
   "  struct ResultValueType\n"
   "  {\n"
-  "#ifdef VK_CPP_NO_EXCEPTIONS\n"
   "    typedef ResultValue<T>  type;\n"
-  "#else\n"
-  "    typedef T              type;\n"
-  "#endif\n"
   "  };\n"
   "\n"
   "  template <>"
   "  struct ResultValueType<void>\n"
   "  {\n"
-  "#ifdef VK_CPP_NO_EXCEPTIONS\n"
   "    typedef Result type;\n"
-  "#else\n"
-  "    typedef void   type;\n"
-  "#endif\n"
   "  };\n"
   "\n"
   );
@@ -357,56 +325,25 @@ std::string const resultValueHeader = (
 std::string const createResultValueHeader = (
   "  inline ResultValueType<void>::type createResultValue( Result result, char const * message )\n"
   "  {\n"
-  "#ifdef VK_CPP_NO_EXCEPTIONS\n"
   "    assert( result == Result::eSuccess );\n"
   "    return result;\n"
-  "#else\n"
-  "    if ( result != Result::eSuccess )\n"
-  "    {\n"
-  "      throw std::system_error( result, message );\n"
-  "    }\n"
-  "#endif\n"
   "  }\n"
   "\n"
   "  template <typename T>\n"
   "  inline typename ResultValueType<T>::type createResultValue( Result result, T & data, char const * message )\n"
   "  {\n"
-  "#ifdef VK_CPP_NO_EXCEPTIONS\n"
   "    assert( result == Result::eSuccess );\n"
   "    return ResultValue<T>( result, data );\n"
-  "#else\n"
-  "    if ( result != Result::eSuccess )\n"
-  "    {\n"
-  "      throw std::system_error( result, message );\n"
-  "    }\n"
-  "    return data;\n"
-  "#endif\n"
   "  }\n"
   "\n"
   "  inline Result createResultValue( Result result, char const * message, std::initializer_list<Result> successCodes )\n"
   "  {\n"
-  "#ifdef VK_CPP_NO_EXCEPTIONS\n"
-  "    assert( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );\n"
-  "#else\n"
-  "    if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )\n"
-  "    {\n"
-  "      throw std::system_error( result, message );\n"
-  "    }\n"
-  "#endif\n"
   "    return result;\n"
   "  }\n"
   "\n"
   "  template <typename T>\n"
   "  inline ResultValue<T> createResultValue( Result result, T & data, char const * message, std::initializer_list<Result> successCodes )\n"
   "  {\n"
-  "#ifdef VK_CPP_NO_EXCEPTIONS\n"
-  "    assert( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );\n"
-  "#else\n"
-  "    if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )\n"
-  "    {\n"
-  "      throw std::system_error( result, message );\n"
-  "    }\n"
-  "#endif\n"
   "    return ResultValue<T>( result, data );\n"
   "  }\n"
   "\n"
@@ -1924,14 +1861,7 @@ void writeFunctionBody(std::ofstream & ofs, std::string const& indentation, std:
         {
           if ((it1->first != returnIndex) && (it0->second == it1->second))
           {
-            ofs << "#ifdef VK_CPP_NO_EXCEPTIONS" << std::endl
-                << indentation << "  assert( " << reduceName(commandData.arguments[it0->first].name) << ".size() == " << reduceName(commandData.arguments[it1->first].name) << ".size() );" << std::endl
-                << "#else" << std::endl
-                << indentation << "  if ( " << reduceName(commandData.arguments[it0->first].name) << ".size() != " << reduceName(commandData.arguments[it1->first].name) << ".size() )" << std::endl
-                << indentation << "  {" << std::endl
-                << indentation << "    throw std::logic_error( \"vk::" << className << "::" << functionName << ": " << reduceName(commandData.arguments[it0->first].name) << ".size() != " << reduceName(commandData.arguments[it1->first].name) << ".size()\" );" << std::endl
-                << indentation << "  }" << std::endl
-                << "#endif  // VK_CPP_NO_EXCEPTIONS" << std::endl;
+            ofs << "  assert( " << reduceName(commandData.arguments[it0->first].name) << ".size() == " << reduceName(commandData.arguments[it1->first].name) << ".size() );" << std::endl;
           }
         }
       }
@@ -2295,14 +2225,7 @@ void writeStructConstructor( std::ofstream & ofs, std::string const& name, Struc
       }
       else
       {
-        ofs << "std::array<" + structData.members[i].type + "," + structData.members[i].arraySize + "> const& " + structData.members[i].name << "_ = { " << defaultIt->second;
-        size_t n = atoi(structData.members[i].arraySize.c_str());
-        assert(0 < n);
-        for (size_t j = 1; j < n; j++)
-        {
-          ofs << ", " << defaultIt->second;
-        }
-        ofs << " }";
+        ofs << structData.members[i].type + " " + structData.members[i].name << "_[" + structData.members[i].arraySize + "] = { }";
       }
       listedArgument = true;
     }
@@ -2339,7 +2262,7 @@ void writeStructConstructor( std::ofstream & ofs, std::string const& name, Struc
   {
     if ( !structData.members[i].arraySize.empty() )
     {
-      ofs << "      memcpy( &" << structData.members[i].name << ", " << structData.members[i].name << "_.data(), " << structData.members[i].arraySize << " * sizeof( " << structData.members[i].type << " ) );" << std::endl;
+      ofs << "      memcpy( &" << structData.members[i].name << ", " << structData.members[i].name << "_, " << structData.members[i].arraySize << " * sizeof( " << structData.members[i].type << " ) );" << std::endl;
     }
   }
   ofs << "    }" << std::endl
@@ -2366,17 +2289,16 @@ void writeStructSetter( std::ofstream & ofs, std::string const& name, MemberData
   ofs << "    " << name << "& set" << static_cast<char>(toupper(memberData.name[0])) << memberData.name.substr(1) << "( ";
   if ( memberData.arraySize.empty() )
   {
-    ofs << memberData.type << " ";
+    ofs << memberData.type << " " << memberData.name << "_ )" << std::endl;
   }
   else
   {
-    ofs << "std::array<" << memberData.type << "," << memberData.arraySize << "> ";
+    ofs << memberData.type << " " << memberData.name << "_[" << memberData.arraySize << "] )" << std::endl;
   }
-  ofs << memberData.name << "_ )" << std::endl
-      << "    {" << std::endl;
+  ofs << "    {" << std::endl;
   if ( !memberData.arraySize.empty() )
   {
-    ofs << "      memcpy( &" << memberData.name << ", " << memberData.name << "_.data(), " << memberData.arraySize << " * sizeof( " << memberData.type << " ) )";
+    ofs << "      memcpy( &" << memberData.name << ", " << memberData.name << "_, " << memberData.arraySize << " * sizeof( " << memberData.type << " ) )";
   }
   else
   {
@@ -2395,12 +2317,6 @@ void writeTypeCommand(std::ofstream & ofs, VkData const& vkData, DependencyData 
   if (!commandData.handleCommand)
   {
     writeTypeCommandStandard(ofs, "  ", dependencyData.name, dependencyData, commandData, vkData.vkTypes);
-
-    ofs << std::endl
-        << "#ifndef VKCPP_DISABLE_ENHANCED_MODE" << std::endl;
-    writeTypeCommandEnhanced(ofs, vkData, "  ", "", dependencyData.name, dependencyData, commandData);
-    ofs << "#endif /*VKCPP_DISABLE_ENHANCED_MODE*/" << std::endl
-        << std::endl;
   }
 }
 
@@ -2630,21 +2546,7 @@ void writeTypeHandle(std::ofstream & ofs, VkData const& vkData, DependencyData c
       std::string functionName = determineFunctionName(dep->name, cit->second);
 
       bool hasPointers = hasPointerArguments(cit->second);
-      if (!hasPointers)
-      {
-        ofs << "#ifdef VKCPP_DISABLE_ENHANCED_MODE" << std::endl;
-      }
       writeTypeCommandStandard(ofs, "    ", functionName, *dep, cit->second, vkData.vkTypes);
-      if (!hasPointers)
-      {
-        ofs << "#endif /*!VKCPP_DISABLE_ENHANCED_MODE*/" << std::endl;
-      }
-
-      ofs << std::endl
-          << "#ifndef VKCPP_DISABLE_ENHANCED_MODE" << std::endl;
-      writeTypeCommandEnhanced(ofs, vkData, "    ", className, functionName, *dep, cit->second);
-      ofs << "#endif /*VKCPP_DISABLE_ENHANCED_MODE*/" << std::endl;
-
       if (i < handle.commands.size() - 1)
       {
         ofs << std::endl;
@@ -2758,14 +2660,13 @@ void writeTypeUnion( std::ofstream & ofs, VkData const& vkData, DependencyData c
     ofs << "    " << dependencyData.name << "( ";
     if ( unionData.members[i].arraySize.empty() )
     {
-      ofs << unionData.members[i].type << " ";
+      ofs << unionData.members[i].type << " " << unionData.members[i].name << "_";
     }
     else
     {
-      ofs << "const std::array<" << unionData.members[i].type << "," << unionData.members[i].arraySize << ">& ";
+      ofs << "const " << unionData.members[i].type << " " << unionData.members[i].name << "_[" << unionData.members[i].arraySize << "]";
     }
-    ofs << unionData.members[i].name << "_";
-
+    
     // just the very first constructor gets default arguments
     if ( i == 0 )
     {
@@ -2777,7 +2678,7 @@ void writeTypeUnion( std::ofstream & ofs, VkData const& vkData, DependencyData c
       }
       else
       {
-        ofs << " = { " << it->second << " }";
+        ofs << " = { }";
       }
     }
     ofs << " )" << std::endl
@@ -2789,7 +2690,7 @@ void writeTypeUnion( std::ofstream & ofs, VkData const& vkData, DependencyData c
     }
     else
     {
-      ofs << "memcpy( &" << unionData.members[i].name << ", " << unionData.members[i].name << "_.data(), " << unionData.members[i].arraySize << " * sizeof( " << unionData.members[i].type << " ) )";
+      ofs << "memcpy( &" << unionData.members[i].name << ", " << unionData.members[i].name << "_, " << unionData.members[i].arraySize << " * sizeof( " << unionData.members[i].type << " ) )";
     }
     ofs << ";" << std::endl
         << "    }" << std::endl
@@ -2981,16 +2882,11 @@ int main( int argc, char **argv )
       << "#ifndef VK_CPP_H_" << std::endl
       << "#define VK_CPP_H_" << std::endl
       << std::endl
-      << "#include <array>" << std::endl
-      << "#include <cassert>" << std::endl
-      << "#include <cstdint>" << std::endl
-      << "#include <cstring>" << std::endl
-      << "#include <string>" << std::endl
-      << "#include <system_error>" << std::endl
+      << "#include <assert.h>" << std::endl
+      << "#include <stdint.h>" << std::endl
+      << "#include <string.h>" << std::endl
+      << "#include <initializer_list>" << std::endl
       << "#include <vulkan/vulkan.h>" << std::endl
-      << "#ifndef VKCPP_DISABLE_ENHANCED_MODE" << std::endl
-      << "# include <vector>" << std::endl
-      << "#endif /*VKCPP_DISABLE_ENHANCED_MODE*/" << std::endl
       << std::endl;
 
     writeVersionCheck(ofs, vkData.version);
@@ -3006,26 +2902,11 @@ int main( int argc, char **argv )
     std::list<DependencyData>::const_iterator it = std::find_if(vkData.dependencies.begin(), vkData.dependencies.end(), [](DependencyData const& dp) { return dp.name == "Result"; });
     assert(it != vkData.dependencies.end());
     writeTypeEnum(ofs, *it, vkData.enums.find(it->name)->second);
-    writeEnumsToString(ofs, *it, vkData.enums.find(it->name)->second);
     vkData.dependencies.erase(it);
-    ofs << exceptionHeader;
 
-    ofs << "} // namespace vk" << std::endl
-      << std::endl
-      << "namespace std" << std::endl
-      << "{" << std::endl
-      << "  template <>" << std::endl
-      << "  struct is_error_code_enum<vk::Result> : public true_type" << std::endl
-      << "  {};" << std::endl
-      << "}" << std::endl
-      << std::endl
-      << "namespace vk" << std::endl
-      << "{" << std::endl
-      << resultValueHeader
-      << createResultValueHeader;
+    ofs << resultValueHeader << createResultValueHeader;
 
     writeTypes(ofs, vkData, defaultValues);
-    writeEnumsToString(ofs, vkData);
 
     ofs << "} // namespace vk" << std::endl
       << std::endl
